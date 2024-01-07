@@ -101,14 +101,7 @@ unsafe class Program
                             var name = new DictionaryKey(namePointer, delimiterIndex + 1);
                             var value = FastDoubleParser.ParseDouble(currentLineSpan[(delimiterIndex + 1)..]);
                             ref var resultDict = ref CollectionsMarshal.GetValueRefOrAddDefault(result, name, out var exists);
-                            if (exists)
-                            {
-                                resultDict.Calculate(value);
-                            }
-                            else
-                            {
-                                resultDict.Calculate(value);
-                            }
+                            resultDict.Calculate(value);
                         }
                     }
                 }
