@@ -98,7 +98,7 @@ unsafe class Program
                     {
                         fixed (byte* namePointer = currentLineSpan[..delimiterIndex])
                         {
-                            var name = new DictionaryKey(namePointer, delimiterIndex + 1);
+                            var name = new DictionaryKey(namePointer, delimiterIndex);
                             var value = FastDoubleParser.ParseDouble(currentLineSpan[(delimiterIndex + 1)..]);
                             ref var resultDict = ref CollectionsMarshal.GetValueRefOrAddDefault(result, name, out var exists);
                             resultDict.Calculate(value);
