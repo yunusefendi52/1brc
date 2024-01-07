@@ -482,5 +482,5 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
-.nettrace
-.speedscope.json
+*.nettrace
+*.speedscope.json
