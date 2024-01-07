@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Dumpify;
 using SpanExtensions;
+using csFastFloat;
 
 unsafe class Program
 {
@@ -96,7 +97,7 @@ unsafe class Program
                     if (delimiterIndex != -1)
                     {
                         var name = Encoding.UTF8.GetString(currentLineSpan[..delimiterIndex]);
-                        var value = double.Parse(currentLineSpan[(delimiterIndex + 1)..]);
+                        var value = FastDoubleParser.ParseDouble(currentLineSpan[(delimiterIndex + 1)..]);
                         ref var resultDict = ref CollectionsMarshal.GetValueRefOrAddDefault(result, name, out var exists);
                         if (exists)
                         {
