@@ -25,6 +25,7 @@ unsafe class Program
         using var viewAccessor = mmap.CreateViewAccessor();
         byte* filePointer = null;
         viewAccessor.SafeMemoryMappedViewHandle.AcquirePointer(ref filePointer);
+        var newLineChar = (byte)'\n';
         var chunks = GetChunks();
         var results = chunks
             .AsParallel()
@@ -61,7 +62,7 @@ unsafe class Program
             {
                 var lineOffset = offset + chunkSize;
                 var span = new Span<byte>(filePointer + lineOffset, 64); // TODO: Is this safe for finding the threshold?
-                var lastNewLineIndex = span.IndexOf((byte)'\n');
+                var lastNewLineIndex = span.IndexOf(newLineChar);
                 var length = chunkSize + lastNewLineIndex;
                 if (length + offset >= fileLength)
                 {
@@ -85,7 +86,7 @@ unsafe class Program
                     break;
                 }
                 var span = new Span<byte>(filePointer + fileOffset, (int)v.length);
-                var newLineIndex = span.IndexOf((byte)'\n');
+                var newLineIndex = span.IndexOf(newLineChar);
                 if (newLineIndex == -1)
                 {
                     break;
