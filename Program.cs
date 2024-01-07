@@ -30,11 +30,11 @@ unsafe class Program
             .AsParallel()
             .Select(GetResult)
             .Aggregate(AggregateResult)
-            .OrderBy(v => v.Key, StringComparer.Ordinal).ToDictionary();
+            .OrderBy(v => v.Key.ToString(), StringComparer.Ordinal).ToDictionary();
         PrintResults(results);
         sw.Dump();
 
-        static Dictionary<string, ResultData> AggregateResult(Dictionary<string, ResultData> acum, Dictionary<string, ResultData> current)
+        static Dictionary<DictionaryKey, ResultData> AggregateResult(Dictionary<DictionaryKey, ResultData> acum, Dictionary<DictionaryKey, ResultData> current)
         {
             foreach (var item in current)
             {
@@ -73,9 +73,9 @@ unsafe class Program
             return chunks;
         }
 
-        Dictionary<string, ResultData> GetResult((long offset, long length) v)
+        Dictionary<DictionaryKey, ResultData> GetResult((long offset, long length) v)
         {
-            var result = new Dictionary<string, ResultData>(15000);
+            var result = new Dictionary<DictionaryKey, ResultData>(15000);
             var offset = 0L;
             while (true)
             {
@@ -96,16 +96,19 @@ unsafe class Program
                     var delimiterIndex = currentLineSpan.IndexOf((byte)';');
                     if (delimiterIndex != -1)
                     {
-                        var name = Encoding.UTF8.GetString(currentLineSpan[..delimiterIndex]);
-                        var value = FastDoubleParser.ParseDouble(currentLineSpan[(delimiterIndex + 1)..]);
-                        ref var resultDict = ref CollectionsMarshal.GetValueRefOrAddDefault(result, name, out var exists);
-                        if (exists)
+                        fixed (byte* namePointer = currentLineSpan[..delimiterIndex])
                         {
-                            resultDict.Calculate(value);
-                        }
-                        else
-                        {
-                            resultDict.Calculate(value);
+                            var name = new DictionaryKey(namePointer, delimiterIndex + 1);
+                            var value = FastDoubleParser.ParseDouble(currentLineSpan[(delimiterIndex + 1)..]);
+                            ref var resultDict = ref CollectionsMarshal.GetValueRefOrAddDefault(result, name, out var exists);
+                            if (exists)
+                            {
+                                resultDict.Calculate(value);
+                            }
+                            else
+                            {
+                                resultDict.Calculate(value);
+                            }
                         }
                     }
                 }
@@ -114,7 +117,7 @@ unsafe class Program
             return result;
         }
 
-        void PrintResults(Dictionary<string, ResultData> chunks)
+        void PrintResults(Dictionary<DictionaryKey, ResultData> chunks)
         {
             var chunksCount = chunks.Count;
             var sb = new StringBuilder(chunksCount + 3);
@@ -162,5 +165,39 @@ public struct ResultData
             Max = other.Max;
         Sum += other.Sum;
         Count += other.Count;
+    }
+}
+
+unsafe struct DictionaryKey(byte* pointer, int length) : IEquatable<DictionaryKey>
+{
+    public readonly ReadOnlySpan<byte> Value
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => new(pointer, length);
+    }
+
+    public readonly bool Equals(DictionaryKey other)
+    {
+        return Value.SequenceEqual(other.Value);
+    }
+
+    public override readonly bool Equals([NotNullWhen(true)] object? obj)
+    {
+        return obj is DictionaryKey dictionaryKey && dictionaryKey.Equals(dictionaryKey);
+    }
+
+    public override readonly int GetHashCode()
+    {
+        if (length > 3)
+        {
+            return (length * 655360) ^ *(int*)pointer;
+        }
+
+        return *pointer;
+    }
+
+    public override readonly string ToString()
+    {
+        return Encoding.UTF8.GetString(Value);
     }
 }
